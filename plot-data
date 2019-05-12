@@ -1,0 +1,23 @@
+#!/usr/bin/env python2.7
+
+import Gnuplot
+import serial
+import sys
+
+ser = serial.Serial(sys.argv[1], 115200)
+
+readings = []
+g = Gnuplot.Gnuplot()
+g.title("Arduino A0 V readings")
+g('set style data lines')
+g('set yrange [0:5]')
+
+while 1:
+      reading = ser.readline().split()
+      print reading
+      
+      readings.append(reading)
+
+      if len(readings) > 100:
+	    readings = readings[-10:]
+	    g.plot(readings)
