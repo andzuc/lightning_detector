@@ -11,6 +11,6 @@ uint16_t rms_filter(uint16_t sample)
   sum_squares -= sum_squares / SAMPLES;
   sum_squares += (uint32_t) sample * sample;
   if (rms == 0) rms = 1;    /* do not divide by zero */
-  rms = (rms + sum_squares / SAMPLES / rms) / 2;
+  rms = (rms + sum_squares / SAMPLES / rms) / 2; /* Newton–Raphson sqrt */
   return rms;
 }

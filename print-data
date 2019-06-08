@@ -4,5 +4,6 @@ SER="${1:-/dev/ttyUSB0}"
 stty -F "$SER" cs8 115200 raw
 while read v
 do
-    echo `date +%s%N` $v
+    #    echo `date +%s%N` $v
+    echo $v
 done < "$SER"

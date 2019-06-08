@@ -1,4 +1,4 @@
 #!/bin/bash
 SER="${1:-/dev/ttyUSB0}"
 
-./print-data "$SER"|sox -t dat -c 1 -r 10k -e floating-point - -n stat
+./print-data "$SER"|sox -t dat -e floating-point - -n spectrogram

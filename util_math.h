@@ -4,7 +4,7 @@
 
 /* Fast RMS calculaion */
 /* https://stackoverflow.com/a/28812301 */
-extern uint16_t rms_filter(uint16_t sample);
+uint16_t rms_filter(uint16_t sample);
 
 // defines for setting and clearing register bits
 #ifndef cbi

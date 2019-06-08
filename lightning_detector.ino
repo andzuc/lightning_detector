@@ -1,8 +1,10 @@
+extern "C" {
 #include "util_math.h"
+}
 
 #define FASTADC 1
 #define SAMPLES 512
-#define SPIKE 30
+#define SPIKE 20
 
 typedef struct
 {
@@ -16,6 +18,8 @@ typedef struct
   long lastTime;
   sample (*data)[SAMPLES];
   int count;
+  uint16_t rms;
+  //rms_filter_status* rms_status;
   bool send;
 } sampling;
 
@@ -46,7 +50,8 @@ void setup() {
   size_t dataSize=sizeof(sample[SAMPLES]);
   Serial.println(dataSize);
   delay(3000);
-  buffer.data=malloc(dataSize);
+  //buffer.rms_status=new_rms_filter(512,SAMPLES);
+  buffer.data=(sample(*)[SAMPLES])malloc(dataSize);
   if(buffer.data==NULL)
     {
       Serial.println("malloc failed: resetting");
@@ -60,6 +65,7 @@ void loop()
   long sampleTime=micros();
   if(buffer.count==0) buffer.firstTime=buffer.lastTime=sampleTime;
   sample* s=addSample(buffer,analogRead(A0),(unsigned byte)(sampleTime-buffer.lastTime));
+  //buffer.rms=rms_filter(s->value);
   buffer.lastTime=micros();
 
   if(!buffer.send && hasSpike(buffer)) buffer.send=true;
@@ -81,10 +87,15 @@ void send(sampling* s)
   Serial.print("; Sample Rate ");
   Serial.println(sampleRate);
   Serial.println("; Channels 1");
-  for (int i=0;i<(s->count);i++){
-    Serial.print(getSample(*s,i).deltat);
+  Serial.print("; RMS ");
+  Serial.println(s->rms);
+  long t=s->firstTime;
+  for (int i=0; i<(s->count); i++){
+    Serial.print(t);
     Serial.print("\t");
-    Serial.println(getSample(*s,i).value);
+    double v=((double)getSample(*s,i).value-512)/512;
+    Serial.println(v);
+    t+=getSample(*s,i).deltat;
   }
   digitalWrite(LED_BUILTIN, HIGH);
 }
