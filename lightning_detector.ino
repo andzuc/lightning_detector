@@ -46,8 +46,10 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(A0,INPUT);
+  //analogReference(INTERNAL);
 
   size_t dataSize=sizeof(sample[SAMPLES]);
+  Serial.print("; dataSize ");
   Serial.println(dataSize);
   delay(3000);
   //buffer.rms_status=new_rms_filter(512,SAMPLES);
@@ -93,8 +95,10 @@ void send(sampling* s)
   for (int i=0; i<(s->count); i++){
     Serial.print(t);
     Serial.print("\t");
-    double v=((double)getSample(*s,i).value-512)/512;
-    Serial.println(v);
+    double v=((double)getSample(*s,i).value-512)/512;   
+    Serial.print(v);
+    Serial.print("\t");
+    Serial.println(getSample(*s,i).value);
     t+=getSample(*s,i).deltat;
   }
   digitalWrite(LED_BUILTIN, HIGH);
