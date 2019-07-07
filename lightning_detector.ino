@@ -4,7 +4,7 @@ extern "C" {
 
 #define FASTADC 1
 #define SAMPLES 512
-#define SPIKE 20
+#define SPIKE 0
 
 typedef struct
 {
@@ -46,7 +46,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(A0,INPUT);
-  //analogReference(INTERNAL);
+  analogReference(INTERNAL);
 
   size_t dataSize=sizeof(sample[SAMPLES]);
   Serial.print("; dataSize ");
