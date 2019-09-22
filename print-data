@@ -4,6 +4,9 @@ SER="${1:-/dev/ttyUSB0}"
 stty -F "$SER" cs8 115200 raw
 while read v
 do
-    #    echo `date +%s%N` $v
     echo $v
+    if [[ "$v" =~ "; Channels" ]]; then
+	echo "; CaptureDate $(date +'%Y/%m/%d')"
+	echo "; CaptureTime $(date +'%T')"
+    fi
 done < "$SER"

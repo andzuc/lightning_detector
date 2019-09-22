@@ -4,7 +4,9 @@ import Gnuplot
 import serial
 import sys
 
-ser = serial.Serial(sys.argv[1], 115200)
+ser = None
+if len(sys.argv) == 2:
+      ser = serial.Serial(sys.argv[1], 115200)
 
 readings = []
 g = Gnuplot.Gnuplot()
@@ -13,11 +15,17 @@ g('set style data lines')
 g('set yrange [0:1024]')
 
 while 1:
-      reading=ser.readline().split();
+      reading = None
+      if ser is not None:
+            reading = ser.readline().split()
+      else:
+            reading = sys.stdin.readline().split()
       try:
-            readingt = int(reading[0])
-            readingv = int(reading[2])
-            readings.append(readingv)
+            if reading == []: break
+            if len(reading) == 3:
+                  readingt = int(reading[0])
+                  readingv = int(reading[2])
+                  readings.append(readingv)
       except ValueError:
             pass
       finally:
@@ -25,4 +33,4 @@ while 1:
 
       if len(readings) > 300:
 	    readings = readings[-10:]
-	    g.plot(readings)
+            g.plot(readings)

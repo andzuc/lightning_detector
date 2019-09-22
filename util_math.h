@@ -2,6 +2,15 @@
 #define UTIL_MATH_
 #include <stdint.h>
 
+// number of elements in array x
+#define LENGTH(A) (sizeof(A)/sizeof((A)[0]))
+#define ABS(N) ((N<0)?(-N):(N))
+
+// boolean
+#define bool uint8_t
+#define true 1
+#define false 0
+
 /* Fast RMS calculaion */
 /* https://stackoverflow.com/a/28812301 */
 uint16_t rms_filter(uint16_t sample);
@@ -16,9 +25,5 @@ uint16_t rms_filter(uint16_t sample);
 
 // software reset
 void (*resetMCU)(void);
-
-// number of elements in array x
-#define LENGTH(A) (sizeof(A)/sizeof((A)[0]))
-#define ABS(N) ((N<0)?(-N):(N))
 
 #endif // UTIL_MATH_
