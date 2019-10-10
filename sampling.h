@@ -10,38 +10,45 @@
 
 typedef struct
 {
-  uint8_t deltat;
+  uint16_t deltat;
   int16_t value;
 } sample;
 
 typedef struct
 {
   sample (*data)[];
-  uint16_t count;
-  uint16_t maxsamples;
+  uint16_t next;
+  uint16_t maxSamples;
   long firstTime;
   long lastTime;
-  int16_t zeroValue;
+  //int16_t zeroValue;
   uint16_t nspikes;
   uint16_t ncross;
+  int16_t meanLast;
+  int16_t mean;
   uint32_t variance;
-  bool send;
 } sampling;
 
-#define getSample(s,i) ((*(s).data)[(i)])
-#define addSample(s,d,t) (((s).count < (s).maxsamples) ?		\
-			  &((getSample((s),(s).count++))=((sample){(t),(d)})) : NULL)
-#define hasSpike(s) (((s).count >= 2) ?					\
-		     (ABS(getSample((s),(s).count).value -		\
-			  getSample((s),(s).count-1).value) > SPIKE) : false)
-#define zeroCross(s) (((s).count >= 2) ?				\
-		      (getSample((s),(s).count).value >= (s).zeroValue && \
-		       getSample((s),(s).count-1).value < (s).zeroValue ) : false)
-#define zeroDelta(s) (ABS(getSample((s),(s).count) - (s).zeroValue))
-#define updVariance(s) (((s).count >= 1) ?				\
-			((s).variance += getSample((s),(s).count).value^2) : \
-			0)
 
-void reset(sampling* s);
+/*
+  address = (next+i) % maxSamples, but if maxsamples is a power of two then optimize
+  https://stackoverflow.com/questions/11040646/faster-modulus-in-c-c
+*/
+#define getSampleImpl(s,i) ((*(s).data)[(i)])
+#define addSample(s,d,t) (((s).next < (s).maxSamples) ?			\
+			  (&((getSampleImpl((s),(s).next++))=((sample){(t),(d)}))) : \
+			  (((s).next = 0),(&((getSampleImpl((s),(s).next++))=((sample){(t),(d)})))))
+#define getSample(s,i) (getSampleImpl(s,(((i) + (s).next) & ((s).maxSamples-1))))
+#define getLast(s) (getSample((s),(s).maxSamples-1).value)
+#define getLastMinusOne(s) (getSample((s),(s).maxSamples-2).value)
+#define hasSpike(s) (ABS(getLast(s) - getLastMinusOne(s)) > SPIKE)
+#define zeroCross(s) (getLast(s) >= (s).mean && getLastMinusOne(s) < (s).mean)
+#define zeroDelta(s) (ABS(getLast(s) - (s).mean))
+#define updMean(s) (((s).meanLast = (s).mean),				\
+		    ((s).mean = (s).meanLast + (getLast(s) - (s).meanLast)/(s).maxSamples))
+#define updVariance(s) ((s).variance += ((getLast(s)-(s).meanLast) * (getLast(s)-(s).mean)))
+
+void reset(sampling* s, long t);
+long getFirstTime(sampling* s);
 
 #endif // SAMPLING_
