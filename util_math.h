@@ -3,8 +3,10 @@
 #include <stdint.h>
 
 // number of elements in array x
-#define LENGTH(A) (sizeof(A)/sizeof((A)[0]))
-#define ABS(N) ((N<0)?(-N):(N))
+#define LENGTH(a) (sizeof(a)/sizeof((a)[0]))
+#define ABS(n) (((n)<0)?(-(n)):(n))
+#define MAX(a,b) ((a)<(b)?(b):(a))
+#define MIN(a,b) ((a)<(b)?(a):(b))
 
 // boolean
 #define bool uint8_t

@@ -5,12 +5,13 @@ extern "C" {
 #include "sampling.h"
 }
 
+//#define DEBUG
 #define FASTADC 1
-#define SAMPLES 256
+#define SAMPLES_SIZE 8
 #define SPIKE 10
 #define SPIKEN 5
-#define MAXSTDDEV 400
-#define MAXVAR MAXSTDDEV^2*SAMPLES
+#define MAXSTDDEV 0
+#define MAXVAR 0
 #define SENSFREQ 0
 
 static void send(sampling* s);
@@ -31,7 +32,7 @@ void setup() {
   pinMode(A7,INPUT);
   analogReference(INTERNAL);
 
-  size_t dataSize=sizeof(sample[SAMPLES]);
+  size_t dataSize=sizeof(sample[1<<SAMPLES_SIZE]);
   delay(3000);
   buffer.data=(sample (*)[])malloc(dataSize);
   if(buffer.data==NULL)
@@ -41,11 +42,10 @@ void setup() {
       resetMCU();
     }
   memset(buffer.data,0,dataSize);
-  buffer.maxSamples=SAMPLES;
+  buffer.size=SAMPLES_SIZE;
+  buffer.maxSamples=1<<SAMPLES_SIZE;
   reset(&buffer,micros());
 }
-
-//#define DEBUG
 
 void loop()
 {
@@ -81,19 +81,20 @@ void loop()
   Serial.println(buffer.lastTime);
 #endif
 
+  updSum(buffer);
   updMean(buffer);
-  updVariance(buffer);
+  //updVariance(buffer);
   //if(zeroCross(buffer)) ++buffer.ncross;
 
-  if(hasSpike(buffer))
-    {
-      ++buffer.nspikes;
-      /* if(buffer.nspikes>SPIKEN */
-      /* 	 && buffer.next==buffer.maxSamples) */
-      /* 	send(&buffer); */
-    }
+  /* if(hasSpike(buffer)) */
+  /*   { */
+  /*     ++buffer.nspikes; */
+  /*     if(buffer.nspikes>SPIKEN */
+  /*     	 && buffer.next==buffer.maxSamples) */
+  /*     	send(&buffer); */
+  /*   } */
 
-  if(buffer.variance>MAXVAR
+  if(buffer.variance>=MAXVAR
      && buffer.next==buffer.maxSamples)
     send(&buffer);
 }
