@@ -83,7 +83,8 @@ void loop()
 
   updSum(buffer);
   updMean(buffer);
-  //updVariance(buffer);
+  updSqSum(buffer);
+  updVariance(buffer);
   //if(zeroCross(buffer)) ++buffer.ncross;
 
   /* if(hasSpike(buffer)) */
@@ -94,8 +95,7 @@ void loop()
   /*     	send(&buffer); */
   /*   } */
 
-  if(buffer.variance>=MAXVAR
-     && buffer.next==buffer.maxSamples)
+  if(buffer.next==buffer.maxSamples)
     send(&buffer);
 }
 
@@ -105,7 +105,7 @@ void send(sampling* s)
   long f0=1E6l/timeSpan;
   long sampleRate=(s->next)*f0;
   long sensFreq=(s->ncross)*f0;
-  double stdDev=sqrt((s->variance)/(s->maxSamples));
+  double stdDev=sqrt(MAX(s->variance,0));
   if(sensFreq<SENSFREQ) return;
   digitalWrite(LED_BUILTIN, HIGH);
   Serial.print("; Sample Rate ");
@@ -127,6 +127,8 @@ void send(sampling* s)
   Serial.println(sensFreq);
   Serial.print("; mean ");
   Serial.println(s->mean);
+  Serial.print("; variance ");
+  Serial.println(s->variance);
   Serial.print("; stdDev ");
   Serial.println(stdDev);
   long t=(s->firstTime);

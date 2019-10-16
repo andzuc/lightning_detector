@@ -25,7 +25,9 @@ typedef struct
   int32_t mwSum;
   int16_t meanLast;
   int16_t mean;
-  long variance;
+  int32_t mwSqSumLast;
+  int32_t mwSqSum;
+  int32_t variance;
 } sampling;
 
 /*
@@ -53,9 +55,19 @@ typedef struct
 
 #define updSum(s) (((s).mwSumLast = (s).mwSum),				\
 		   ((s).mwSum = (s).mwSumLast + getLast(s) - getFirst(s)))
-#define updMean(s) (((s).meanLast = roundDiv((s).mwSumLast , (s).size)), \
-		    ((s).mean = roundDiv((s).mwSum , (s).size) ))
-#define updVariance(s) ((s).variance += ((getLast(s)-(s).meanLast) * (getLast(s)-(s).mean)))
+#define updMean(s) (((s).meanLast = roundDiv((s).mwSumLast, (s).size)), \
+		    ((s).mean = roundDiv((s).mwSum, (s).size)))
+
+/*
+  0) n*VAR = n*VARLAST + ((LAST - MEAN)^2 - (FIRST - MEAN?)^2)
+  Using a^2 - b^2 = (a+b) * (a-b), we have:
+  1) n*VAR = n*VARLAST + ((LAST+FIRST-2*MEAN) * (LAST-FIRST))
+ */
+#define updSqSum(s) (((s).mwSqSumLast = (s).mwSqSum),			\
+		     ((s).mwSqSum = (s).mwSqSumLast +			\
+		      (getLast(s) + getFirst(s) - ((s).mean<<2)) *	\
+		      (getLast(s) - getFirst(s))))
+#define updVariance(s) ((s).variance = roundDiv((s).mwSqSum, (s).size))
 
 void reset(sampling* s, long t);
 long getFirstTime(sampling* s);
