@@ -11,7 +11,7 @@ extern "C" {
 #define SPIKE 10
 #define SPIKEN 5
 #define MAXSTDDEV 0
-#define MAXVAR 0
+#define MAXVAR 576
 #define SENSFREQ 0
 
 static void send(sampling* s);
@@ -55,26 +55,18 @@ void loop()
   Serial.print(last);
   Serial.print(" vlast:");
   Serial.print((*(buffer.data))[last].value);
-  Serial.print(" dtlast:");
-  Serial.print((*(buffer.data))[last].deltat);
 #endif
 
   //buffer.firstTime+=getSample(buffer,0).deltat;
   int16_t value=analogRead(A0);
   long sampleTime=micros();
-  long dt=sampleTime-buffer.lastTime;
-  sample* s=addSample(buffer,value,(uint16_t)dt);
-  if(buffer.next==1)
-    {
-      buffer.firstTime=sampleTime;
-    }
+  sample* s=addSample(buffer,value);
+  if(buffer.next==1) buffer.firstTime=sampleTime;
   buffer.lastTime=sampleTime;
   
 #ifdef DEBUG
   Serial.print(" vcur:");
   Serial.print(value);
-  Serial.print(" dtcur:");
-  Serial.print(dt);
   Serial.print(" firstT:");
   Serial.print(buffer.firstTime);
   Serial.print(" lastT:");
@@ -95,8 +87,18 @@ void loop()
   /*     	send(&buffer); */
   /*   } */
 
-  if(buffer.next==buffer.maxSamples)
-    send(&buffer);
+  if(buffer.sendIdx>0)
+    {
+      if(buffer.next==buffer.sendIdx) buffer.sendIdx=0;
+    }
+  else
+    {
+      if(buffer.variance>MAXVAR)
+	{
+	  buffer.sendIdx=buffer.next;
+	  send(&buffer);
+	}
+    }
 }
 
 void send(sampling* s)
@@ -117,8 +119,8 @@ void send(sampling* s)
   Serial.println(s->lastTime);
   Serial.print("; timeSpan ");
   Serial.println(timeSpan);
-  /* Serial.print("; zeroValue "); */
-  /* Serial.println(s->zeroValue); */
+  Serial.print("; next ");
+  Serial.println(s->next);
   Serial.print("; nspikes ");
   Serial.println(s->nspikes);
   Serial.print("; ncross ");
@@ -126,16 +128,16 @@ void send(sampling* s)
   Serial.print("; sensFreq ");
   Serial.println(sensFreq);
   Serial.print("; mean ");
-  Serial.println(s->mean);
+  Serial.println(getLast(*s).mean);
   Serial.print("; variance ");
   Serial.println(s->variance);
   Serial.print("; stdDev ");
   Serial.println(stdDev);
   long t=(s->firstTime);
+  uint16_t dt=roundDiv(timeSpan,(s->size));
   for (uint16_t i=0; i<(s->maxSamples); i++){
-    sample sc=getSampleImpl(*s,i);
+    sample sc=getSample(*s,i);
     // time in micros
-    uint16_t dt=sc.deltat;
     if(i>0) t+=dt;
     Serial.print(t);
     // normalized value: -1 <= v <=1
@@ -147,7 +149,7 @@ void send(sampling* s)
     Serial.print(sc.value);
     // raw deltat
     Serial.print("\t");
-    Serial.println(sc.deltat);
+    Serial.println(dt);
   }
   s->nspikes=0;
   digitalWrite(LED_BUILTIN, LOW);
