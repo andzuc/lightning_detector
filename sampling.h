@@ -2,6 +2,7 @@
 #define SAMPLING_
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "util_math.h"
 
 typedef struct
@@ -14,10 +15,11 @@ typedef struct
 {
   sample (*data)[];
   uint16_t next;
-  uint8_t size;
-  uint16_t maxSamples; // 2^size
+  uint8_t log2size;
+  uint16_t maxSamples; // 2^log2size
   long firstTime;
   long lastTime;
+  long lastSend;
   //int16_t zeroValue;
   uint16_t nspikes;
   uint16_t ncross;
@@ -59,8 +61,8 @@ typedef struct
 
 #define updSum(s) (((s).mwSumLast = (s).mwSum),				\
 		   ((s).mwSum = (s).mwSumLast + getLast(s).value - getFirst(s).value))
-#define updMean(s) ((getLastMinusOne(s).mean = roundDiv((s).mwSumLast, (s).size)), \
-		    (getLast(s).mean = roundDiv((s).mwSum, (s).size)))
+#define updMean(s) ((getLastMinusOne(s).mean = roundDiv((s).mwSumLast, (s).log2size)), \
+		    (getLast(s).mean = roundDiv((s).mwSum, (s).log2size)))
 
 /*
   0) n*VAR = n*VARLAST + ((LAST - MEAN_LAST)^2 - (FIRST - MEAN_FIRST)^2)
@@ -71,8 +73,9 @@ typedef struct
 		     ((s).mwSqSum = (s).mwSqSumLast +			\
 		      (getLast(s).value - getLast(s).mean + getFirst(s).value - getFirst(s).mean) * \
 		      (getLast(s).value - getLast(s).mean - getFirst(s).value + getFirst(s).mean)))
-#define updVariance(s) ((s).variance = roundDiv((s).mwSqSum, (s).size))
+#define updVariance(s) ((s).variance = roundDiv((s).mwSqSum, (s).log2size))
 
-void reset(sampling* s, long t);
+sampling* sampling_ctor(long t, uint8_t log2size, void (*out)(const char*));
+void sampling_reset(sampling* s, long t);
 
 #endif // SAMPLING_
