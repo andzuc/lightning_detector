@@ -11,7 +11,7 @@ typedef struct
   int16_t mean;
 } sample;
 
-typedef struct
+typedef struct sampling
 {
   sample (*data)[];
   uint16_t next;
@@ -29,6 +29,13 @@ typedef struct
   int32_t mwSqSum;
   int32_t variance;
   uint16_t sendIdx;
+
+  // configuration and platform dependent methods
+  unsigned long (*get_micros)(void);
+  int16_t (*get_sample)(void);
+  bool (*send_trigger)(struct sampling*);
+  void (*send_proc)(struct sampling*);
+  void (*out)(const char*);
 } sampling;
 
 /*
@@ -44,8 +51,8 @@ typedef struct
 
 #define getSampleImpl(s,i) ((*(s).data)[(i)])
 #define addSample(s,d) (((s).next < (s).maxSamples) ?			\
-			(&((getSampleImpl((s),(s).next++))=((sample){(d),0}))) : \
-			(((s).next = 0),(&((getSampleImpl((s),(s).next++))=((sample){(d),0})))))
+			((getSampleImpl((s),(s).next++))=((sample){(d),0})) : \
+			(((s).next = 0),((getSampleImpl((s),(s).next++))=((sample){(d),0}))))
 /*
   address = (next+i) % maxSamples
 */
@@ -75,7 +82,13 @@ typedef struct
 		      (getLast(s).value - getLast(s).mean - getFirst(s).value + getFirst(s).mean)))
 #define updVariance(s) ((s).variance = roundDiv((s).mwSqSum, (s).log2size))
 
-sampling* sampling_ctor(long t, uint8_t log2size, void (*out)(const char*));
-void sampling_reset(sampling* s, long t);
+sampling* sampling_ctor(unsigned long (*get_micros)(void), \
+			int16_t (*get_sample)(void),	   \
+			bool (*send_trigger)(sampling*),   \
+			void (*send_proc)(sampling*),	   \
+			uint8_t log2size,		   \
+			void (*out)(const char*));
+void sampling_reset(sampling* s);
+void sampling_acquire(sampling* s);
 
 #endif // SAMPLING_

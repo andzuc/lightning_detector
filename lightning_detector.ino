@@ -15,7 +15,10 @@ extern "C" {
 #define SENSFREQ 0
 
 static void send(sampling* s);
-static void serial_println(const char* s);
+static int16_t analogReadA0(void);
+static bool send_trigger(sampling* s);
+static void send_proc(sampling* s);
+static void serial_print(const char* s);
 
 sampling* buffer;
 
@@ -30,73 +33,39 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(A0,INPUT);
-  pinMode(A7,INPUT);
   analogReference(INTERNAL);
 
-  buffer=sampling_ctor(micros(),SAMPLES_SIZE,serial_println);
+  Serial.println("sampling setup");
+  buffer=sampling_ctor(micros,				\
+		       analogReadA0,			\
+		       send_trigger,			\
+		       send_proc,			\
+		       SAMPLES_SIZE,			\
+		       serial_print);
 }
 
 void loop()
 {
-#ifdef DEBUG
-  int last=(((255)+(buffer).next) & ((buffer).maxSamples-1));
-  Serial.print("last:");
-  Serial.print(last);
-  Serial.print(" vlast:");
-  Serial.print((*(buffer.data))[last].value);
-#endif
-
-  //buffer.firstTime+=getSample(buffer,0).deltat;
-  int16_t value=analogRead(A0);
-  long sampleTime=micros();
-  sample* s=addSample(*buffer,value);
-  if(buffer->next==1) buffer->firstTime=sampleTime;
-  buffer->lastTime=sampleTime;
-  
-#ifdef DEBUG
-  Serial.print(" vcur:");
-  Serial.print(value);
-  Serial.print(" firstT:");
-  Serial.print(buffer.firstTime);
-  Serial.print(" lastT:");
-  Serial.println(buffer.lastTime);
-#endif
-
-  updSum(*buffer);
-  updMean(*buffer);
-  updSqSum(*buffer);
-  updVariance(*buffer);
-  //if(zeroCross(buffer)) ++buffer.ncross;
-
-  /* if(hasSpike(buffer)) */
-  /*   { */
-  /*     ++buffer.nspikes; */
-  /*     if(buffer.nspikes>SPIKEN */
-  /*     	 && buffer.next==buffer.maxSamples) */
-  /*     	send(&buffer); */
-  /*   } */
-
-  if(buffer->sendIdx>0)
-    {
-      if(buffer->next==buffer->sendIdx) buffer->sendIdx=0;
-    }
-  else
-    {
-      if(buffer->variance>MAXVAR \
-	 || buffer->lastTime-buffer->lastSend>30E6l )
-	{
-	  buffer->sendIdx=buffer->next;
-	  send(buffer);
-	}
-    }
+  sampling_acquire(buffer);
 }
 
-void serial_println(const char* s)
+int16_t analogReadA0(void)
 {
-  Serial.println(s);
+  return analogRead(A0);
 }
 
-void send(sampling* s)
+void serial_print(const char* s)
+{
+  Serial.print(s);
+}
+
+bool send_trigger(sampling* s)
+{
+  return (s->variance)>MAXVAR			\
+    || (s->lastTime)-(s->lastSend)>30E6l;
+}
+
+void send_proc(sampling* s)
 {
   long timeSpan=(s->lastTime)-(s->firstTime);
   long f0=1E6l/timeSpan;
