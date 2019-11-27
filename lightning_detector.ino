@@ -3,6 +3,7 @@
 extern "C" {
 #include "util_math.h"
 #include "sampling.h"
+#include <fastadc.h>
 }
 
 //#define DEBUG
@@ -29,15 +30,24 @@ void setup() {
   cbi(ADCSRA,ADPS1) ;
   cbi(ADCSRA,ADPS0) ;
 #endif
+  ADCSRA |= _BV(ADEN);    // Enable the ADC
 
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(A0,INPUT);
   analogReference(INTERNAL);
 
+  ADMUX = 0;         // use #1 ADC
+  ADMUX |= _BV(REFS0) | _BV(REFS1);    // use internal 1.1V Voltage Reference
+  ADMUX &= (~_BV(ADLAR));   // clear for 10 bit resolution (default)
+
+  Serial.print("ADMUX: ");
+  Serial.println(ADMUX);
+  Serial.print("ADCSRA: ");
+  Serial.println(ADCSRA);
   Serial.println("sampling setup");
   buffer=sampling_ctor(micros,				\
-		       analogReadA0,			\
+		       ADCsingleREAD_10bit,		\
 		       send_trigger,			\
 		       send_proc,			\
 		       SAMPLES_SIZE,			\
